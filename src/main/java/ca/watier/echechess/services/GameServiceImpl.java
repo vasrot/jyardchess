@@ -37,11 +37,13 @@ import ca.watier.echechess.exceptions.GameNotFoundException;
 import ca.watier.echechess.exceptions.InvalidGameParameterException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
+import ca.watier.echechess.models.UserDetailsImpl;
 import ca.watier.echechess.utils.MessageQueueUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 
 import java.util.*;
 
@@ -360,6 +362,22 @@ public class GameServiceImpl implements GameService {
         }
 
         return values;
+    }
+
+    @Override
+    public List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
+        if (ObjectUtils.anyNull(from, player) || StringUtils.isBlank(uuid)) {
+            throw new InvalidGameParameterException();
+        }
+
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+        Side playerSide = gameFromUuid.getPlayerSide(player);
+
+        if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
+            return null;  //TODO: Add a checked exception
+        }
+
+        return gameFromUuid.getAllAvailableMoves(from, playerSide);
     }
 
 }

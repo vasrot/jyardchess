@@ -139,6 +139,23 @@ public class GameController {
     }
 
     @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the available moves."),
+            @ApiResponse(code = 204, message = "The result of this query will be sent on the web socket, when ready.")
+    })
+    @ApiOperation("Get a list of position that the piece can moves")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/available-moves", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<CasePosition>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+                                                 @ApiParam(value = UUID_GAME, required = true) String uuid) {
+
+        try {
+            return ResponseEntity.ok(gameService.getAllAvailableMovesBody(from, uuid, AuthenticationUtils.getUserDetail()));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when promoting the pawn."),
             @ApiResponse(code = 200, message = "The result of the promoting (true / false).")
     })
