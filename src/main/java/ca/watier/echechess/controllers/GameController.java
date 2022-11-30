@@ -231,4 +231,19 @@ public class GameController {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
     }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when evaluating whether is the players turn."),
+            @ApiResponse(code = 200, message = "the player turn (true/false).")
+    })
+    @ApiOperation("Gets information whether is it or not the players turn ")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/player-turn", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> isPlayerTurn(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+        try {
+            return ResponseEntity.ok(gameService.isPlayerTurn(uuid, AuthenticationUtils.getUserDetail()));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
 }

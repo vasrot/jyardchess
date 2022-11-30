@@ -31,6 +31,8 @@ import ca.watier.echechess.delegates.GameMessageDelegate;
 import ca.watier.echechess.engine.delegates.PieceMoveConstraintDelegate;
 import ca.watier.echechess.engine.engines.GenericGameHandler;
 import ca.watier.echechess.engine.exceptions.FenParserException;
+import ca.watier.echechess.engine.handlers.GameEventEvaluatorHandlerImpl;
+import ca.watier.echechess.engine.interfaces.GameEventEvaluatorHandler;
 import ca.watier.echechess.engine.utils.FenGameParser;
 import ca.watier.echechess.exceptions.GameException;
 import ca.watier.echechess.exceptions.GameNotFoundException;
@@ -378,6 +380,16 @@ public class GameServiceImpl implements GameService {
         }
 
         return gameFromUuid.getAllAvailableMoves(from, playerSide);
+    }
+
+    @Override
+    public Boolean isPlayerTurn(String uuid, Player player) throws GameException {
+
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+        Side playerSide = gameFromUuid.getPlayerSide(player);
+        GameEventEvaluatorHandler gameEvaluator = new GameEventEvaluatorHandlerImpl();
+
+        return gameEvaluator.isPlayerTurn(playerSide, gameFromUuid.getCloneOfCurrentDataState())? Boolean.TRUE : Boolean.FALSE;
     }
 
 }

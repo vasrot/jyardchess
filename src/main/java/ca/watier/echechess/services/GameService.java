@@ -54,4 +54,6 @@ public interface GameService {
     Map<UUID, GenericGameHandler> getAllGames();
 
     List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
+
+    Boolean isPlayerTurn(String uuid, Player player) throws GameException;
 }
