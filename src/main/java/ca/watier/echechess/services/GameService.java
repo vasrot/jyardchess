@@ -25,6 +25,8 @@ import ca.watier.echechess.engine.exceptions.FenParserException;
 import ca.watier.echechess.exceptions.GameException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
+import ca.watier.echechess.models.UserDetailsImpl;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
@@ -50,4 +52,6 @@ public interface GameService {
     boolean upgradePiece(CasePosition to, String uuid, PawnPromotionPiecesModel piece, Player player) throws GameException;
 
     Map<UUID, GenericGameHandler> getAllGames();
+
+    List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
 }
