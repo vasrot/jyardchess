@@ -69,16 +69,19 @@ public class GameServiceImpl implements GameService {
     private final WebSocketService webSocketService;
     private final GameRepository<GenericGameHandler> gameRepository;
     private final GameMessageDelegate gameMessageDelegate;
+    private final GameEventEvaluatorHandler gameEvaluator;
 
     public GameServiceImpl(PieceMoveConstraintDelegate pieceMoveConstraintDelegate,
                            WebSocketService webSocketService,
                            GameRepository<GenericGameHandler> gameRepository,
-                           GameMessageDelegate gameMessageDelegate) {
+                           GameMessageDelegate gameMessageDelegate,
+                           GameEventEvaluatorHandler gameEvaluator) {
 
         this.pieceMoveConstraintDelegate = pieceMoveConstraintDelegate;
         this.webSocketService = webSocketService;
         this.gameRepository = gameRepository;
         this.gameMessageDelegate = gameMessageDelegate;
+        this.gameEvaluator = gameEvaluator;
     }
 
     /**
@@ -387,9 +390,8 @@ public class GameServiceImpl implements GameService {
 
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         Side playerSide = gameFromUuid.getPlayerSide(player);
-        GameEventEvaluatorHandler gameEvaluator = new GameEventEvaluatorHandlerImpl();
 
-        return gameEvaluator.isPlayerTurn(playerSide, gameFromUuid.getCloneOfCurrentDataState())? Boolean.TRUE : Boolean.FALSE;
+        return this.gameEvaluator.isPlayerTurn(playerSide, gameFromUuid.getCloneOfCurrentDataState())? Boolean.TRUE : Boolean.FALSE;
     }
 
 }
