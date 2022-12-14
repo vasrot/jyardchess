@@ -37,7 +37,8 @@ public class GameConfiguration {
         return new PieceMoveConstraintDelegate();
     }
 
-    @Bean GameEventEvaluatorHandler gameEvaluator() { return new GameEventEvaluatorHandlerImpl(); }
+    @Bean
+    public GameEventEvaluatorHandler gameEvaluator() { return new GameEventEvaluatorHandlerImpl(); }
 
     @Bean
     public GameService gameService(PieceMoveConstraintDelegate pieceMoveConstraintDelegate,
