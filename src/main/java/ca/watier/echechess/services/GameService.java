@@ -56,4 +56,6 @@ public interface GameService {
     List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
 
     Boolean isPlayerTurn(String uuid, Player player) throws GameException;
+
+    Boolean underCheckMate(String uuid, Player player) throws GameException;
 }

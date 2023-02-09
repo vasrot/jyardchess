@@ -394,4 +394,12 @@ public class GameServiceImpl implements GameService {
         return this.gameEvaluator.isPlayerTurn(playerSide, gameFromUuid.getCloneOfCurrentDataState())? Boolean.TRUE : Boolean.FALSE;
     }
 
+    @Override
+    public Boolean underCheckMate(String uuid, Player player) throws GameException {
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+        Side playerSide = gameFromUuid.getPlayerSide(player);
+
+        return gameFromUuid.isCheckMate(playerSide)? Boolean.TRUE : Boolean.FALSE;
+    }
+
 }

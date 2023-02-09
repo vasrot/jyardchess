@@ -246,4 +246,19 @@ public class GameController {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
     }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when evaluating the check mate."),
+            @ApiResponse(code = 200, message = "Under check mate (true/false).")
+    })
+    @ApiOperation("Gets information whether a player is under check mate ")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/check-mate", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> checkMate(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+        try {
+            return ResponseEntity.ok(gameService.underCheckMate(uuid, AuthenticationUtils.getUserDetail()));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
 }
