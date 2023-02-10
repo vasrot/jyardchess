@@ -248,15 +248,16 @@ public class GameController {
     }
 
     @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "There's an issue when evaluating the check mate."),
-            @ApiResponse(code = 200, message = "Under check mate (true/false).")
+            @ApiResponse(code = 400, message = "There's an issue when evaluating the check mate for the specified side."),
+            @ApiResponse(code = 200, message = "Side under check mate (true/false).")
     })
-    @ApiOperation("Gets information whether a player is under check mate ")
+    @ApiOperation("Gets information whether a player side is under check mate ")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/check-mate", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Boolean> checkMate(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+    public ResponseEntity<Boolean> checkMate(@ApiParam(value = UUID_GAME, required = true) String uuid,
+                                             @ApiParam(value = SIDE_PLAYER, required = true) Side side) {
         try {
-            return ResponseEntity.ok(gameService.underCheckMate(uuid, AuthenticationUtils.getUserDetail()));
+            return ResponseEntity.ok(gameService.underCheckMate(uuid, AuthenticationUtils.getUserDetail(), side));
         } catch (GameException e) {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }

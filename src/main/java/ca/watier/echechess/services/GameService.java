@@ -57,5 +57,5 @@ public interface GameService {
 
     Boolean isPlayerTurn(String uuid, Player player) throws GameException;
 
-    Boolean underCheckMate(String uuid, Player player) throws GameException;
+    Boolean underCheckMate(String uuid, Player player, Side side) throws GameException;
 }
