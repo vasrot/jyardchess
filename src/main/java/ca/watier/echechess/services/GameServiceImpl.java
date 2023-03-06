@@ -20,6 +20,7 @@ import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.KingStatus;
 import ca.watier.echechess.common.enums.Pieces;
 import ca.watier.echechess.common.enums.Side;
+import ca.watier.echechess.common.pojos.MoveHistory;
 import ca.watier.echechess.common.responses.BooleanResponse;
 import ca.watier.echechess.common.services.WebSocketService;
 import ca.watier.echechess.common.sessions.Player;
@@ -400,6 +401,13 @@ public class GameServiceImpl implements GameService {
         Side playerSide = gameFromUuid.getPlayerSide(player);
 
         return gameFromUuid.isCheckMate(side);
+    }
+
+    @Override
+    public List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException {
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+
+        return gameFromUuid.getMoveHistory();
     }
 
 }
