@@ -402,4 +402,11 @@ public class GameServiceImpl implements GameService {
         return gameFromUuid.isCheckMate(side);
     }
 
+    @Override
+    public Boolean isGameEnded(String uuid) throws GameException {
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+
+        return gameFromUuid.isGameEnded();
+    }
+
 }
