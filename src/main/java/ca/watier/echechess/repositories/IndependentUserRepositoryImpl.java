@@ -68,4 +68,12 @@ public class IndependentUserRepositoryImpl extends AbstractUserRepository {
 
         saveOrUpdateUserInformation(userByName);
     }
+
+    @Override
+    public void deleteGameFromUser(@NotBlank String username, @NotNull UUID game) throws UserException {
+        UserInformation userByName = getUserByName(username);
+        userByName.removeGame(game);
+
+        saveOrUpdateUserInformation(userByName);
+    }
 }

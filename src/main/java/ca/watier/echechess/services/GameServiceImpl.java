@@ -370,6 +370,12 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public boolean deleteGame(String uuid) {
+    	gameRepository.delete(uuid);
+    	return true;
+    }
+
+    @Override
     public List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
         if (ObjectUtils.anyNull(from, player) || StringUtils.isBlank(uuid)) {
             throw new InvalidGameParameterException();
