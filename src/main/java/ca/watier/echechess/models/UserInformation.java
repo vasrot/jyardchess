@@ -69,6 +69,10 @@ public class UserInformation implements Serializable {
         listOfGames.add(game);
     }
 
+    public void removeGame(UUID game) {
+        listOfGames.remove(game);
+    }
+
     public String getRoleAsString() {
         return role.name();
     }

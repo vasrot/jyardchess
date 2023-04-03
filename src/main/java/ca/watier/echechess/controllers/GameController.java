@@ -37,6 +37,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -262,4 +263,19 @@ public class GameController {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
     }
+	@ApiResponses(value = { @ApiResponse(code = 400, message = "There's an issue when deleting the game."),
+			@ApiResponse(code = 200, message = "The result if the game has been deleted (true / false)") })
+	@ApiOperation("Delete the game with the uuid specified")
+	@PreAuthorize("isPlayerInGame(#uuid)")
+	@DeleteMapping(path = "/delete-game")
+	public ResponseEntity<Boolean> deleteGame(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+		try {
+			UserDetailsImpl userDetail = AuthenticationUtils.getUserDetail();
+			userService.deleteGameFromUser(userDetail.getUsername(), UUID.fromString(uuid));
+
+			return ResponseEntity.ok(gameService.deleteGame(uuid));
+		} catch (Exception e) {
+			return BAD_REQUEST_RESPONSE_ENTITY;
+		}
+	}
 }

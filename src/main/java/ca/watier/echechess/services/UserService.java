@@ -51,4 +51,8 @@ public class UserService {
     public void addGameToUser(@NotEmpty String username, @NotNull UUID game) throws UserException {
         userRepository.addGameToUser(username, game);
     }
+
+    public void deleteGameFromUser(@NotEmpty String username, @NotNull UUID game) throws UserException {
+        userRepository.deleteGameFromUser(username, game);
+    }
 }
