@@ -51,6 +51,8 @@ public interface GameService {
     boolean upgradePiece(CasePosition to, String uuid, PawnPromotionPiecesModel piece, Player player) throws GameException;
 
     Map<UUID, GenericGameHandler> getAllGames();
+    
+    boolean deleteGame(String uuid);
 
     List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
 

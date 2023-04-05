@@ -47,6 +47,11 @@ public class DependentUserRepositoryImpl extends AbstractUserRepository {
     }
 
     @Override
+    public void deleteGameFromUser(@NotBlank String username, @NotNull UUID game) throws UserException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     protected void saveOrUpdateUserInformation(@NotNull UserInformation userInformation) {
         throw new UnsupportedOperationException();
     }

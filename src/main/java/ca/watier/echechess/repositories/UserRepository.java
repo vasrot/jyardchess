@@ -40,6 +40,8 @@ public interface UserRepository {
 
     void addGameToUser(@NotBlank String username, @NotNull UUID game) throws UserException;
 
+    void deleteGameFromUser(@NotBlank String username, @NotNull UUID game) throws UserException;
+    
     void addNewUser(@Valid @NotNull User user) throws UserException;
 
     void updateUser(@Valid @NotNull User user, @NotNull UserDetailsImpl userDetails) throws UserException;
