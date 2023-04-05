@@ -58,5 +58,5 @@ public interface GameService {
 
     Boolean underCheckMate(String uuid, Player player, Side side) throws GameException;
 
-    Boolean isGameEnded(String uuid) throws GameException;
+    Boolean isGameEnded(String uuid, Player player) throws GameException;
 }

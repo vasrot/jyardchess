@@ -272,7 +272,7 @@ public class GameController {
     @GetMapping(path = "/game-ended", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> isGameEnded(@ApiParam(value = UUID_GAME, required = true) String uuid) {
         try {
-            return ResponseEntity.ok(gameService.isGameEnded(uuid));
+            return ResponseEntity.ok(gameService.isGameEnded(uuid, AuthenticationUtils.getUserDetail()));
         } catch (GameException e) {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
