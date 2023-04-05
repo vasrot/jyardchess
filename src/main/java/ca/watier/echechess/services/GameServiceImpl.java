@@ -437,13 +437,15 @@ public class GameServiceImpl implements GameService {
 
         // Stalemate and interblocks
         boolean stalemate = true;
-        List<PieceLocationModel> boardState = getIterableBoard(uuid, player);
         List<CasePosition> availableMoves;
 
+        Map<CasePosition, Pieces> whitePieces = gameFromUuid.getPiecesLocation(Side.WHITE);
+        Map<CasePosition, Pieces> blackPieces = gameFromUuid.getPiecesLocation(Side.BLACK);
+
         //verify movements for my own pieces
-        for(PieceLocationModel piece : boardState){
-            availableMoves = gameFromUuid.getAllAvailableMoves(piece.getPosition(), getPlayerSide(uuid, player));
-            if(null!=availableMoves || !availableMoves.isEmpty()){
+        for(CasePosition tile : whitePieces.keySet()){
+            availableMoves = gameFromUuid.getAllAvailableMoves(tile, getPlayerSide(uuid, player));
+            if(null!=availableMoves && !availableMoves.isEmpty()){
                 stalemate = false;
                 break;
             }
@@ -451,11 +453,11 @@ public class GameServiceImpl implements GameService {
 
         //verify movements for other player
         if(!stalemate) {
-            for (PieceLocationModel piece : boardState) {
+            for (CasePosition tile : blackPieces.keySet()) {
                 availableMoves = gameFromUuid.getAllAvailableMoves(
-                                piece.getPosition(),
+                                tile,
                                 getPlayerSide(uuid, player).equals(Side.WHITE)? Side.WHITE : Side.BLACK);
-                if (null != availableMoves || !availableMoves.isEmpty()) {
+                if (null != availableMoves && !availableMoves.isEmpty()) {
                     stalemate = false;
                     break;
                 }
@@ -469,8 +471,6 @@ public class GameServiceImpl implements GameService {
         //King vs King and Knight
         //King vs King and Bishop
         //King and Bishop vs King and Bishop (same color)
-        Map<CasePosition, Pieces> whitePieces = gameFromUuid.getPiecesLocation(Side.WHITE);
-        Map<CasePosition, Pieces> blackPieces = gameFromUuid.getPiecesLocation(Side.BLACK);
 
         //If W/B has 2 pieces both check King and Bishop vs King and Bishop (same color)
         if (whitePieces.keySet().size()==2 && blackPieces.size()==2) {
@@ -488,7 +488,7 @@ public class GameServiceImpl implements GameService {
                 }
 
                 for(CasePosition tile : blackPieces.keySet()){
-                    if(blackPieces.get(tile).equals(Pieces.W_BISHOP)) bBishopTile = checkTileColor(tile);
+                    if(blackPieces.get(tile).equals(Pieces.B_BISHOP)) bBishopTile = checkTileColor(tile);
                 }
 
                 if(wBishopTile == bBishopTile) theoreticalDraw = true;
