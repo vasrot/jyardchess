@@ -16,6 +16,20 @@
 
 package ca.watier.echechess.controllers;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.responses.BooleanResponse;
@@ -32,19 +46,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by yannick on 4/22/2017.
@@ -271,7 +272,7 @@ public class GameController {
     @ApiOperation("Gets information whether the game is ended ")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/game-ended", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Boolean> isGameEnded(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+    public ResponseEntity<String> isGameEnded(@ApiParam(value = UUID_GAME, required = true) String uuid) {
         try {
             return ResponseEntity.ok(gameService.isGameEnded(uuid, AuthenticationUtils.getUserDetail()));
         } catch (GameException e) {
