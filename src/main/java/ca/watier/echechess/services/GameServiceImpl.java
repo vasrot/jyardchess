@@ -46,6 +46,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import ca.watier.echechess.types.EndType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -430,10 +431,10 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public String isGameEnded(String uuid, Player player) throws GameException {
+    public EndType isGameEnded(String uuid, Player player) throws GameException {
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         boolean gameEnded = false;
-        String result = null;
+        EndType result = EndType.NO_END;
 
         /*
          * 2 ways to conclude the game is over:
@@ -450,10 +451,10 @@ public class GameServiceImpl implements GameService {
         // Checkmate
         if (gameFromUuid.isCheckMate(Side.WHITE)) {
         	gameEnded = true;
-        	result = "Checkmate to " + Side.WHITE;
+        	result = EndType.W_CHECKMATE;
         } else if (gameFromUuid.isCheckMate(Side.BLACK)) {
         	gameEnded = true;
-        	result = "Checkmate to " + Side.BLACK;
+        	result = EndType.B_CHECKMATE;
         }
         
         if (!gameEnded) {
@@ -475,7 +476,7 @@ public class GameServiceImpl implements GameService {
             
             if (repetitiveMoves) {
             	gameEnded = true;
-            	result = "Draw by repetitive moves";
+            	result = EndType.REPETITIVE_MOVES;
             }
         }
 
@@ -514,7 +515,7 @@ public class GameServiceImpl implements GameService {
             
             if (stalemate) {
             	gameEnded = true;
-            	result = "Draw by stalemate";
+            	result = EndType.STALEMATE;
             }
         }
         
@@ -572,7 +573,7 @@ public class GameServiceImpl implements GameService {
             
             if (theoreticalDraw) {
             	gameEnded = true;
-            	result = "Draw theoretical";
+            	result = EndType.MATERIAL_DRAW;
             }
         }
         
