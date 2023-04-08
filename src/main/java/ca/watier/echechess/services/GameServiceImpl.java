@@ -16,6 +16,42 @@
 
 package ca.watier.echechess.services;
 
+import static ca.watier.echechess.common.enums.ChessEventMessage.GAME_WON_EVENT_MOVE;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PAWN_PROMOTION;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_JOINED;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
+import static ca.watier.echechess.common.enums.ChessEventMessage.REFRESH_BOARD;
+import static ca.watier.echechess.common.enums.ChessEventMessage.SCORE_UPDATE;
+import static ca.watier.echechess.common.enums.ChessEventMessage.TRY_JOIN_GAME;
+import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
+import static ca.watier.echechess.common.utils.Constants.GAME_ENDED;
+import static ca.watier.echechess.common.utils.Constants.GAME_PAUSED_PAWN_PROMOTION;
+import static ca.watier.echechess.common.utils.Constants.JOINING_GAME;
+import static ca.watier.echechess.common.utils.Constants.NEW_PLAYER_JOINED_SIDE;
+import static ca.watier.echechess.common.utils.Constants.NOT_AUTHORIZED_TO_JOIN;
+import static ca.watier.echechess.common.utils.Constants.PLAYER_KING_STALEMATE;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.UUID;
+
+import ca.watier.echechess.types.EndType;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
+
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.KingStatus;
 import ca.watier.echechess.common.enums.Pieces;
@@ -32,7 +68,6 @@ import ca.watier.echechess.delegates.GameMessageDelegate;
 import ca.watier.echechess.engine.delegates.PieceMoveConstraintDelegate;
 import ca.watier.echechess.engine.engines.GenericGameHandler;
 import ca.watier.echechess.engine.exceptions.FenParserException;
-import ca.watier.echechess.engine.handlers.GameEventEvaluatorHandlerImpl;
 import ca.watier.echechess.engine.interfaces.GameEventEvaluatorHandler;
 import ca.watier.echechess.engine.utils.FenGameParser;
 import ca.watier.echechess.exceptions.GameException;
@@ -40,20 +75,7 @@ import ca.watier.echechess.exceptions.GameNotFoundException;
 import ca.watier.echechess.exceptions.InvalidGameParameterException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
-import ca.watier.echechess.models.UserDetailsImpl;
 import ca.watier.echechess.utils.MessageQueueUtils;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-
-import java.util.*;
-
-import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
-import static ca.watier.echechess.common.enums.ChessEventMessage.*;
-import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
-import static ca.watier.echechess.common.utils.Constants.*;
 
 
 /**
@@ -371,6 +393,12 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public boolean deleteGame(String uuid) {
+    	gameRepository.delete(uuid);
+    	return true;
+    }
+
+    @Override
     public List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
         if (ObjectUtils.anyNull(from, player) || StringUtils.isBlank(uuid)) {
             throw new InvalidGameParameterException();
@@ -398,7 +426,6 @@ public class GameServiceImpl implements GameService {
     @Override
     public Boolean underCheckMate(String uuid, Player player, Side side) throws GameException {
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
-        Side playerSide = gameFromUuid.getPlayerSide(player);
 
         return gameFromUuid.isCheckMate(side);
     }
@@ -410,4 +437,192 @@ public class GameServiceImpl implements GameService {
         return gameFromUuid.getMoveHistory();
     }
 
+    @Override
+    public EndType isGameEnded(String uuid, Player player) throws GameException {
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+        boolean gameEnded = false;
+        EndType result = EndType.NO_END;
+
+        /*
+         * 2 ways to conclude the game is over:
+         *  - Checkmate
+         *  - Stalemate or interblock
+         *       - No available moves
+         *       - 3 times same moves
+         *       - Situations where the game cannot end
+         *              - King vs King
+         *              - King + Knight vs King
+         *              - King + Bishop vs King
+         */
+
+        // Checkmate
+        if (gameFromUuid.isCheckMate(Side.WHITE)) {
+        	gameEnded = true;
+        	result = EndType.W_CHECKMATE;
+        } else if (gameFromUuid.isCheckMate(Side.BLACK)) {
+        	gameEnded = true;
+        	result = EndType.B_CHECKMATE;
+        }
+        
+        if (!gameEnded) {
+            // 3 times same move
+            List<MoveHistory> moveHist = gameFromUuid.getMoveHistory();
+            boolean repetitiveMoves = false;
+
+            if (moveHist.size() > 11) {
+                List<MoveHistory> lastMovements = moveHist.subList(moveHist.size() - 11, moveHist.size() - 1);
+
+                repetitiveMoves = true;
+                for (int i = 0; i < (lastMovements.size() / 2); i++) {
+                    if (!equalMove(lastMovements.get(i), lastMovements.get(i + 4))) {
+                        repetitiveMoves = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (repetitiveMoves) {
+            	gameEnded = true;
+            	result = EndType.REPETITIVE_MOVES;
+            }
+        }
+
+        Map<CasePosition, Pieces> whitePieces = gameFromUuid.getPiecesLocation(Side.WHITE);
+        Map<CasePosition, Pieces> blackPieces = gameFromUuid.getPiecesLocation(Side.BLACK);
+        
+        if (!gameEnded) {
+            // Stalemate and interblocks
+            boolean stalemate = true;
+            List<CasePosition> availableMoves;
+
+
+            // Verify movements for player's pieces
+            Side playerSide = getPlayerSide(uuid, player);
+            Side otherSide = (Side.WHITE.equals(playerSide) ? Side.BLACK : Side.WHITE);
+            for (CasePosition tile : (Side.WHITE.equals(playerSide) ? whitePieces : blackPieces).keySet()) {
+                availableMoves = gameFromUuid.getAllAvailableMoves(tile, playerSide);
+                
+                if (CollectionUtils.isNotEmpty(availableMoves)) {
+                    stalemate = false;
+                    break;
+                }
+            }
+
+            // Verify movements for other player
+            if (!stalemate) {
+                for (CasePosition tile : (Side.WHITE.equals(otherSide) ? whitePieces : blackPieces).keySet()) {
+                    availableMoves = gameFromUuid.getAllAvailableMoves(tile, otherSide);
+                    
+                    if (CollectionUtils.isNotEmpty(availableMoves)) {
+                        stalemate = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (stalemate) {
+            	gameEnded = true;
+            	result = EndType.STALEMATE;
+            }
+        }
+        
+        if (!gameEnded) {
+            // Detect draw situations
+            boolean theoreticalDraw = false;
+
+            // King vs King
+            // King vs King and Knight
+            // King vs King and Bishop
+            // King and Bishop vs King and Bishop (same color)
+
+            //If W/B has 2 pieces both check King and Bishop vs King and Bishop (same color)
+            if ((whitePieces.size() == 2) && (blackPieces.size() == 2)) {
+
+                if (whitePieces.containsValue(Pieces.W_KING)
+                    && whitePieces.containsValue(Pieces.W_BISHOP)
+                    && blackPieces.containsValue(Pieces.B_KING)
+                    && blackPieces.containsValue(Pieces.B_BISHOP)) {
+
+                    int wBishopTile = -1;
+                    int bBishopTile = -1;
+
+                    for (CasePosition tile : whitePieces.keySet()) {
+                        if (whitePieces.get(tile).equals(Pieces.W_BISHOP)) {
+                        	wBishopTile = checkTileColor(tile);
+                        }
+                    }
+
+                    for (CasePosition tile : blackPieces.keySet()) {
+                        if (blackPieces.get(tile).equals(Pieces.B_BISHOP)) {
+                        	bBishopTile = checkTileColor(tile);
+                        }
+                    }
+
+                    if (wBishopTile == bBishopTile) {
+                    	theoreticalDraw = true;
+                    }
+                }
+
+            } else if ((whitePieces.size() == 1) && (blackPieces.size() == 2)
+            		&& (blackPieces.containsValue(Pieces.B_KNIGHT) || blackPieces.containsValue(Pieces.B_BISHOP))) {
+
+                theoreticalDraw = true;
+
+            } else if ((whitePieces.size() == 2) && (blackPieces.size() == 1)
+                    && (whitePieces.containsValue(Pieces.W_KNIGHT) || whitePieces.containsValue(Pieces.W_BISHOP))) {
+
+                theoreticalDraw = true;
+
+            } else if ((whitePieces.size() == 1) && (blackPieces.size() == 1)) {
+
+                theoreticalDraw = true;
+            }
+            
+            if (theoreticalDraw) {
+            	gameEnded = true;
+            	result = EndType.MATERIAL_DRAW;
+            }
+        }
+        
+        return result;
+    }
+
+    private boolean equalMove(MoveHistory m1, MoveHistory m2) {
+        return m1.getPlayerSide().equals(m2.getPlayerSide())
+                && m1.getFrom().equals(m2.getFrom())
+                && m1.getTo().equals(m2.getTo())
+                && m1.getMoveType().equals(m2.getMoveType());
+    }
+
+    private int checkTileColor (CasePosition tile) {
+        int color = -1;
+
+        List<CasePosition> whiteTiles = Arrays.asList(
+                CasePosition.A2, CasePosition.A4, CasePosition.A6, CasePosition.A8,
+                CasePosition.B1, CasePosition.B3, CasePosition.B5, CasePosition.B7,
+                CasePosition.C2, CasePosition.C4, CasePosition.C6, CasePosition.C8,
+                CasePosition.D1, CasePosition.D3, CasePosition.D5, CasePosition.D7,
+                CasePosition.E2, CasePosition.E4, CasePosition.E6, CasePosition.E8,
+                CasePosition.F1, CasePosition.F3, CasePosition.F5, CasePosition.F7,
+                CasePosition.G2, CasePosition.G4, CasePosition.G6, CasePosition.G8,
+                CasePosition.H1, CasePosition.H3, CasePosition.H5, CasePosition.H7);
+
+        List<CasePosition> blackTiles = Arrays.asList(
+                CasePosition.A1, CasePosition.A3, CasePosition.A5, CasePosition.A7,
+                CasePosition.B2, CasePosition.B4, CasePosition.B6, CasePosition.B8,
+                CasePosition.C1, CasePosition.C3, CasePosition.C5, CasePosition.C7,
+                CasePosition.D2, CasePosition.D4, CasePosition.D6, CasePosition.D8,
+                CasePosition.E1, CasePosition.E3, CasePosition.E5, CasePosition.E7,
+                CasePosition.F2, CasePosition.F4, CasePosition.F6, CasePosition.F8,
+                CasePosition.G1, CasePosition.G3, CasePosition.G5, CasePosition.G7,
+                CasePosition.H2, CasePosition.H4, CasePosition.H6, CasePosition.H8);
+
+        if (whiteTiles.contains(tile)) {
+            color = 1;
+        } else {
+            color = 0;
+        }
+
+        return color;
+    }
 }

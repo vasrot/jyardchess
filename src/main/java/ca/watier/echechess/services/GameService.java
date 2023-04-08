@@ -16,6 +16,10 @@
 
 package ca.watier.echechess.services;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.pojos.MoveHistory;
@@ -27,11 +31,7 @@ import ca.watier.echechess.exceptions.GameException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
 import ca.watier.echechess.models.UserDetailsImpl;
-import org.springframework.http.ResponseEntity;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import ca.watier.echechess.types.EndType;
 
 public interface GameService {
     UUID createNewGame(String specialGamePieces, Side side, boolean againstComputer, boolean observers, Player player) throws FenParserException, GameException;
@@ -53,6 +53,8 @@ public interface GameService {
     boolean upgradePiece(CasePosition to, String uuid, PawnPromotionPiecesModel piece, Player player) throws GameException;
 
     Map<UUID, GenericGameHandler> getAllGames();
+    
+    boolean deleteGame(String uuid);
 
     List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
 
@@ -61,4 +63,6 @@ public interface GameService {
     Boolean underCheckMate(String uuid, Player player, Side side) throws GameException;
 
     List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException;
+
+    EndType isGameEnded(String uuid, Player player) throws GameException;
 }
