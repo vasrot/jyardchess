@@ -431,6 +431,13 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException {
+        GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
+
+        return gameFromUuid.getMoveHistory();
+    }
+
+    @Override
     public EndType isGameEnded(String uuid, Player player) throws GameException {
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         boolean gameEnded = false;

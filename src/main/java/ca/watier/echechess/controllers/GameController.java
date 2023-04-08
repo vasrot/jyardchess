@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
+import ca.watier.echechess.common.pojos.MoveHistory;
 import ca.watier.echechess.common.responses.BooleanResponse;
 import ca.watier.echechess.common.responses.StringResponse;
 import ca.watier.echechess.engine.exceptions.FenParserException;
@@ -265,7 +266,7 @@ public class GameController {
         }
     }
 
-    @ApiResponses(value = {
+   @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when evaluating whether is the players turn."),
             @ApiResponse(code = 200, message = "the player turn (true/false).")
     })
@@ -295,4 +296,20 @@ public class GameController {
 			return BAD_REQUEST_RESPONSE_ENTITY;
 		}
 	}
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the move history."),
+            @ApiResponse(code = 200, message = "list with move history until now.")
+    })
+    @ApiOperation("Get a list of the moves done until now")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/move-history", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MoveHistory>> getMoveHistory(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+
+        try {
+            return ResponseEntity.ok(gameService.getMoveHistory(uuid));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
 }

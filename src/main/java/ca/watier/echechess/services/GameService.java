@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
+import ca.watier.echechess.common.pojos.MoveHistory;
 import ca.watier.echechess.common.responses.BooleanResponse;
 import ca.watier.echechess.common.sessions.Player;
 import ca.watier.echechess.engine.engines.GenericGameHandler;
@@ -60,6 +61,8 @@ public interface GameService {
     Boolean isPlayerTurn(String uuid, Player player) throws GameException;
 
     Boolean underCheckMate(String uuid, Player player, Side side) throws GameException;
+
+    List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException;
 
     EndType isGameEnded(String uuid, Player player) throws GameException;
 }
