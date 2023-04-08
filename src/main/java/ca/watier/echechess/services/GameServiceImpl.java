@@ -431,7 +431,7 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException {
+    public List<MoveHistory> getMoveHistory(String uuid) throws GameException {
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
 
         return gameFromUuid.getMoveHistory();

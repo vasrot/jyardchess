@@ -62,7 +62,7 @@ public interface GameService {
 
     Boolean underCheckMate(String uuid, Player player, Side side) throws GameException;
 
-    List<MoveHistory> getMoveHistory(String uuid, UserDetailsImpl userDetail) throws GameException;
+    List<MoveHistory> getMoveHistory(String uuid) throws GameException;
 
     EndType isGameEnded(String uuid, Player player) throws GameException;
 }
