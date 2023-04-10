@@ -266,7 +266,7 @@ public class GameController {
         }
     }
 
-   @ApiResponses(value = {
+    @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when evaluating whether is the players turn."),
             @ApiResponse(code = 200, message = "the player turn (true/false).")
     })
