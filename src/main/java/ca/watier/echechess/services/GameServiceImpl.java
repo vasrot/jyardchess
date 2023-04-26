@@ -46,6 +46,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import ca.watier.echechess.models.AvailableMove;
+import ca.watier.echechess.models.UserDetailsImpl;
 import ca.watier.echechess.types.EndType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -585,6 +587,34 @@ public class GameServiceImpl implements GameService {
         }
         
         return result;
+    }
+
+    @Override
+    public List<CasePosition> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException {
+
+        if (ObjectUtils.anyNull(player, specialGamePieces, uuid, from)) {
+            throw new InvalidGameParameterException();
+        }
+
+        GenericGameHandler currentGame = getGameFromUuid(uuid);
+        Side side = currentGame.getPlayerSide(player);
+
+        GenericGameHandler genericGameHandler;
+        genericGameHandler = FenGameParser.parse(specialGamePieces);
+
+        UUID uuiGiven = UUID.randomUUID();
+        String uuidAsString = uuiGiven.toString();
+        genericGameHandler.setUuid(uuidAsString);
+        genericGameHandler.setPlayerToSide(player, currentGame.getPlayerSide(player));
+
+        List<CasePosition> availableMoves = genericGameHandler.getAllAvailableMoves(from,
+                gameEvaluator.isPlayerTurn(side, genericGameHandler.getCloneOfCurrentDataState())?
+                        side:
+                        getOtherPlayerSide(side));
+
+        deleteGame(uuiGiven.toString());
+
+        return availableMoves;
     }
 
     private boolean equalMove(MoveHistory m1, MoveHistory m2) {
