@@ -22,6 +22,8 @@ import ca.watier.echechess.communication.redis.interfaces.GameRepository;
 import ca.watier.echechess.delegates.GameMessageDelegate;
 import ca.watier.echechess.engine.delegates.PieceMoveConstraintDelegate;
 import ca.watier.echechess.engine.engines.GenericGameHandler;
+import ca.watier.echechess.engine.handlers.GameEventEvaluatorHandlerImpl;
+import ca.watier.echechess.engine.interfaces.GameEventEvaluatorHandler;
 import ca.watier.echechess.services.GameService;
 import ca.watier.echechess.services.GameServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,14 +37,17 @@ public class GameConfiguration {
         return new PieceMoveConstraintDelegate();
     }
 
+    @Bean
+    public GameEventEvaluatorHandler gameEvaluator() { return new GameEventEvaluatorHandlerImpl(); }
 
     @Bean
     public GameService gameService(PieceMoveConstraintDelegate pieceMoveConstraintDelegate,
                                    WebSocketService webSocketService,
                                    GameRepository<GenericGameHandler> gameRepository,
-                                   GameMessageDelegate gameMessageDelegate) {
+                                   GameMessageDelegate gameMessageDelegate,
+                                   GameEventEvaluatorHandler gameEvaluator) {
 
-        return new GameServiceImpl(pieceMoveConstraintDelegate, webSocketService, gameRepository, gameMessageDelegate);
+        return new GameServiceImpl(pieceMoveConstraintDelegate, webSocketService, gameRepository, gameMessageDelegate, gameEvaluator);
     }
 
     @Bean

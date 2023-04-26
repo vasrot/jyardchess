@@ -16,8 +16,23 @@
 
 package ca.watier.echechess.controllers;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
+import ca.watier.echechess.common.pojos.MoveHistory;
 import ca.watier.echechess.common.responses.BooleanResponse;
 import ca.watier.echechess.common.responses.StringResponse;
 import ca.watier.echechess.engine.exceptions.FenParserException;
@@ -32,18 +47,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by yannick on 4/22/2017.
@@ -139,6 +142,23 @@ public class GameController {
     }
 
     @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the available moves."),
+            @ApiResponse(code = 204, message = "The result of this query will be sent on the web socket, when ready.")
+    })
+    @ApiOperation("Get a list of position that the piece can moves")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/available-moves", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<CasePosition>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+                                                 @ApiParam(value = UUID_GAME, required = true) String uuid) {
+
+        try {
+            return ResponseEntity.ok(gameService.getAllAvailableMovesBody(from, uuid, AuthenticationUtils.getUserDetail()));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when promoting the pawn."),
             @ApiResponse(code = 200, message = "The result of the promoting (true / false).")
     })
@@ -211,6 +231,102 @@ public class GameController {
         try {
             return ResponseEntity.ok(gameService.setSideOfPlayer(side, uuid, AuthenticationUtils.getUserDetail()));
         } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when evaluating whether is the players turn."),
+            @ApiResponse(code = 200, message = "the player turn (true/false).")
+    })
+    @ApiOperation("Gets information whether is it or not the players turn ")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/player-turn", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> isPlayerTurn(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+        try {
+            return ResponseEntity.ok(gameService.isPlayerTurn(uuid, AuthenticationUtils.getUserDetail()));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when evaluating the check mate for the specified side."),
+            @ApiResponse(code = 200, message = "Side under check mate (true/false).")
+    })
+    @ApiOperation("Gets information whether a player side is under check mate ")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/check-mate", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> checkMate(@ApiParam(value = UUID_GAME, required = true) String uuid,
+                                             @ApiParam(value = SIDE_PLAYER, required = true) Side side) {
+        try {
+            return ResponseEntity.ok(gameService.underCheckMate(uuid, AuthenticationUtils.getUserDetail(), side));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when evaluating whether is the players turn."),
+            @ApiResponse(code = 200, message = "the player turn (true/false).")
+    })
+    @ApiOperation("Gets information whether the game is ended ")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/game-ended", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> isGameEnded(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+        try {
+            return ResponseEntity.ok(gameService.isGameEnded(uuid, AuthenticationUtils.getUserDetail()).getCause());
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+	@ApiResponses(value = { @ApiResponse(code = 400, message = "There's an issue when deleting the game."),
+			@ApiResponse(code = 200, message = "The result if the game has been deleted (true / false)") })
+	@ApiOperation("Delete the game with the uuid specified")
+	@PreAuthorize("isPlayerInGame(#uuid)")
+	@DeleteMapping(path = "/delete-game")
+	public ResponseEntity<Boolean> deleteGame(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+		try {
+			UserDetailsImpl userDetail = AuthenticationUtils.getUserDetail();
+			userService.deleteGameFromUser(userDetail.getUsername(), UUID.fromString(uuid));
+
+			return ResponseEntity.ok(gameService.deleteGame(uuid));
+		} catch (Exception e) {
+			return BAD_REQUEST_RESPONSE_ENTITY;
+		}
+	}
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the move history."),
+            @ApiResponse(code = 200, message = "list with move history until now.")
+    })
+    @ApiOperation("Get a list of the moves done until now")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/move-history", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MoveHistory>> getMoveHistory(@ApiParam(value = UUID_GAME, required = true) String uuid) {
+
+        try {
+            return ResponseEntity.ok(gameService.getMoveHistory(uuid));
+        } catch (GameException e) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the available moves given a Fen board state."),
+            @ApiResponse(code = 204, message = "The result of this query.")
+    })
+    @ApiOperation("Get a list of position that the piece can moves given a Fen board state")
+    @PreAuthorize("isPlayerInGame(#uuid)")
+    @GetMapping(path = "/available-moves-predictive", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<CasePosition>> getMovesGivenFen(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+                                                               @ApiParam(value = UUID_GAME, required = true) String uuid,
+                                                               @ApiParam(value = PATTERN_CUSTOM_GAME) String specialGamePieces) {
+
+        try {
+            return ResponseEntity.ok(gameService.getAllAvailableMovesGivenFen(from, uuid, specialGamePieces, AuthenticationUtils.getUserDetail()));
+        } catch (FenParserException | GameException ignored) {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
     }

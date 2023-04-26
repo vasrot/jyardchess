@@ -28,6 +28,7 @@ import ca.watier.echechess.delegates.GameMessageDelegate;
 import ca.watier.echechess.engine.delegates.PieceMoveConstraintDelegate;
 import ca.watier.echechess.engine.engines.GenericGameHandler;
 import ca.watier.echechess.engine.exceptions.FenParserException;
+import ca.watier.echechess.engine.handlers.GameEventEvaluatorHandlerImpl;
 import ca.watier.echechess.engine.interfaces.GameEventEvaluatorHandler;
 import ca.watier.echechess.engine.interfaces.PlayerHandler;
 import ca.watier.echechess.engine.utils.GameUtils;
@@ -67,6 +68,7 @@ public class GameServiceTest {
     private WebSocketService givenWebSocketService;
     private GameService gameService;
     private Player givenPlayer;
+    private GameEventEvaluatorHandler givenGameEvaluator;
 
     @BeforeEach
     public void setup() {
@@ -77,12 +79,14 @@ public class GameServiceTest {
         givenGameMessageDelegate = mock(GameMessageDelegate.class);
         givenPlayer = spy(new Player(UUID.randomUUID().toString()));
         givenWebSocketService = spy(new WebSocketServiceTestImpl());
+        givenGameEvaluator = spy(new GameEventEvaluatorHandlerImpl());
         givenRedisGameRepository = spy(new KeyValueRepository());
         gameService = spy(new GameServiceImpl(
                 DEFAULT_GAME_MOVE_DELEGATE,
                 givenWebSocketService,
                 givenRedisGameRepository,
-                givenGameMessageDelegate));
+                givenGameMessageDelegate,
+                givenGameEvaluator));
     }
 
     @Test
