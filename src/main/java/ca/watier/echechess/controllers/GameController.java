@@ -16,20 +16,6 @@
 
 package ca.watier.echechess.controllers;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.pojos.MoveHistory;
@@ -47,6 +33,16 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Created by yannick on 4/22/2017.
@@ -143,13 +139,13 @@ public class GameController {
 
     @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when fetching the available moves."),
-            @ApiResponse(code = 204, message = "The result of this query will be sent on the web socket, when ready.")
+            @ApiResponse(code = 200, message = "All available moves from specified tile (all if from parameter is not present).")
     })
-    @ApiOperation("Get a list of position that the piece can moves")
+    @ApiOperation("Get a map of position and positions where the piece can move. From parameter optional to specify a single location")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/available-moves", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<CasePosition>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
-                                                 @ApiParam(value = UUID_GAME, required = true) String uuid) {
+    public ResponseEntity<Map<CasePosition, List<CasePosition>>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION) CasePosition from,
+                                                                                      @ApiParam(value = UUID_GAME, required = true) String uuid) {
 
         try {
             return ResponseEntity.ok(gameService.getAllAvailableMovesBody(from, uuid, AuthenticationUtils.getUserDetail()));
@@ -315,12 +311,12 @@ public class GameController {
 
     @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when fetching the available moves given a Fen board state."),
-            @ApiResponse(code = 204, message = "The result of this query.")
+            @ApiResponse(code = 200, message = "The result of this query.")
     })
     @ApiOperation("Get a list of position that the piece can moves given a Fen board state")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/available-moves-predictive", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<CasePosition>> getMovesGivenFen(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+    public ResponseEntity<Map<CasePosition,List<CasePosition>>> getMovesGivenFen(@ApiParam(value = FROM_POSITION) CasePosition from,
                                                                @ApiParam(value = UUID_GAME, required = true) String uuid,
                                                                @ApiParam(value = PATTERN_CUSTOM_GAME) String specialGamePieces) {
 
