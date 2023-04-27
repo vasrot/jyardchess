@@ -31,20 +31,7 @@ import static ca.watier.echechess.common.utils.Constants.NEW_PLAYER_JOINED_SIDE;
 import static ca.watier.echechess.common.utils.Constants.NOT_AUTHORIZED_TO_JOIN;
 import static ca.watier.echechess.common.utils.Constants.PLAYER_KING_STALEMATE;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.UUID;
+import java.util.*;
 
 import ca.watier.echechess.models.AvailableMove;
 import ca.watier.echechess.models.UserDetailsImpl;
@@ -401,19 +388,36 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
-        if (ObjectUtils.anyNull(from, player) || StringUtils.isBlank(uuid)) {
+    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
+        if (ObjectUtils.anyNull(player) || StringUtils.isBlank(uuid)) {
             throw new InvalidGameParameterException();
         }
 
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         Side playerSide = gameFromUuid.getPlayerSide(player);
 
-        if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
-            return null;  //TODO: Add a checked exception
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<CasePosition,List<CasePosition>>();
+
+        if(from==null) {
+            //Case where from is not specified, all availables moves returned
+
+            Map<CasePosition, Pieces> playerPieces = gameFromUuid.getPiecesLocation(playerSide);
+
+            for (CasePosition tile : playerPieces.keySet()) {
+                availableMoves.put(tile, gameFromUuid.getAllAvailableMoves(tile, playerSide));
+            }
+
+        } else {
+            //Case where from is specified: only that position is analysed
+
+            if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
+                return null;  //TODO: Add a checked exception
+            }
+
+            availableMoves.put(from, gameFromUuid.getAllAvailableMoves(from, playerSide));
         }
 
-        return gameFromUuid.getAllAvailableMoves(from, playerSide);
+        return availableMoves;
     }
 
     @Override

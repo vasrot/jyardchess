@@ -56,7 +56,7 @@ public interface GameService {
     
     boolean deleteGame(String uuid);
 
-    List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
+    Map<CasePosition, List<CasePosition>> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws GameException;
 
     Boolean isPlayerTurn(String uuid, Player player) throws GameException;
 

@@ -17,6 +17,7 @@
 package ca.watier.echechess.controllers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,13 +144,13 @@ public class GameController {
 
     @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when fetching the available moves."),
-            @ApiResponse(code = 204, message = "The result of this query will be sent on the web socket, when ready.")
+            @ApiResponse(code = 200, message = "All available moves from specified tile (all if from parameter is not present).")
     })
-    @ApiOperation("Get a list of position that the piece can moves")
+    @ApiOperation("Get a map of position and positions where the piece can move. From parameter optional to specify a single location")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/available-moves", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<CasePosition>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
-                                                 @ApiParam(value = UUID_GAME, required = true) String uuid) {
+    public ResponseEntity<Map<CasePosition, List<CasePosition>>> getMovesOfAPieceBody(@ApiParam(value = FROM_POSITION) CasePosition from,
+                                                                                      @ApiParam(value = UUID_GAME, required = true) String uuid) {
 
         try {
             return ResponseEntity.ok(gameService.getAllAvailableMovesBody(from, uuid, AuthenticationUtils.getUserDetail()));
