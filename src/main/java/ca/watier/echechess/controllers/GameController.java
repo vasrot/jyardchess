@@ -316,12 +316,12 @@ public class GameController {
 
     @ApiResponses(value = {
             @ApiResponse(code = 400, message = "There's an issue when fetching the available moves given a Fen board state."),
-            @ApiResponse(code = 204, message = "The result of this query.")
+            @ApiResponse(code = 200, message = "The result of this query.")
     })
     @ApiOperation("Get a list of position that the piece can moves given a Fen board state")
     @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/available-moves-predictive", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<CasePosition>> getMovesGivenFen(@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+    public ResponseEntity<Map<CasePosition,List<CasePosition>>> getMovesGivenFen(@ApiParam(value = FROM_POSITION) CasePosition from,
                                                                @ApiParam(value = UUID_GAME, required = true) String uuid,
                                                                @ApiParam(value = PATTERN_CUSTOM_GAME) String specialGamePieces) {
 

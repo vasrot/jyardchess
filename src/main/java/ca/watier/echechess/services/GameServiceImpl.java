@@ -396,7 +396,7 @@ public class GameServiceImpl implements GameService {
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         Side playerSide = gameFromUuid.getPlayerSide(player);
 
-        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<CasePosition,List<CasePosition>>();
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
 
         if(from==null) {
             //Case where from is not specified, all availables moves returned
@@ -594,9 +594,9 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<CasePosition> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException {
+    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException {
 
-        if (ObjectUtils.anyNull(player, specialGamePieces, uuid, from)) {
+        if (ObjectUtils.anyNull(player, specialGamePieces, uuid)) {
             throw new InvalidGameParameterException();
         }
 
@@ -611,10 +611,25 @@ public class GameServiceImpl implements GameService {
         genericGameHandler.setUuid(uuidAsString);
         genericGameHandler.setPlayerToSide(player, currentGame.getPlayerSide(player));
 
-        List<CasePosition> availableMoves = genericGameHandler.getAllAvailableMoves(from,
-                gameEvaluator.isPlayerTurn(side, genericGameHandler.getCloneOfCurrentDataState())?
-                        side:
-                        getOtherPlayerSide(side));
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
+        Side playerSide = gameEvaluator.isPlayerTurn(side, genericGameHandler.getCloneOfCurrentDataState()) ?
+                side :
+                getOtherPlayerSide(side);
+
+        if(from==null){
+            //Non specified from returns all available positions to move
+
+            Map<CasePosition, Pieces> playerPieces = genericGameHandler.getPiecesLocation(playerSide);
+
+            for (CasePosition tile : playerPieces.keySet()) {
+                availableMoves.put(tile, genericGameHandler.getAllAvailableMoves(tile, playerSide));
+            }
+
+        } else {
+            //Case with specified from
+
+            availableMoves.put(from, genericGameHandler.getAllAvailableMoves(from, playerSide));
+        }
 
         deleteGame(uuiGiven.toString());
 

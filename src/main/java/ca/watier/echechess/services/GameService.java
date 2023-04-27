@@ -66,5 +66,5 @@ public interface GameService {
 
     EndType isGameEnded(String uuid, Player player) throws GameException;
 
-    List<CasePosition> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException;
+    Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException;
 }
