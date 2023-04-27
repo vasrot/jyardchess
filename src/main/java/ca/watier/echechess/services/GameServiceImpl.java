@@ -16,31 +16,6 @@
 
 package ca.watier.echechess.services;
 
-import static ca.watier.echechess.common.enums.ChessEventMessage.GAME_WON_EVENT_MOVE;
-import static ca.watier.echechess.common.enums.ChessEventMessage.PAWN_PROMOTION;
-import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_JOINED;
-import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
-import static ca.watier.echechess.common.enums.ChessEventMessage.REFRESH_BOARD;
-import static ca.watier.echechess.common.enums.ChessEventMessage.SCORE_UPDATE;
-import static ca.watier.echechess.common.enums.ChessEventMessage.TRY_JOIN_GAME;
-import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
-import static ca.watier.echechess.common.utils.Constants.GAME_ENDED;
-import static ca.watier.echechess.common.utils.Constants.GAME_PAUSED_PAWN_PROMOTION;
-import static ca.watier.echechess.common.utils.Constants.JOINING_GAME;
-import static ca.watier.echechess.common.utils.Constants.NEW_PLAYER_JOINED_SIDE;
-import static ca.watier.echechess.common.utils.Constants.NOT_AUTHORIZED_TO_JOIN;
-import static ca.watier.echechess.common.utils.Constants.PLAYER_KING_STALEMATE;
-
-import java.util.*;
-
-import ca.watier.echechess.models.AvailableMove;
-import ca.watier.echechess.models.UserDetailsImpl;
-import ca.watier.echechess.types.EndType;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.LoggerFactory;
-
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.KingStatus;
 import ca.watier.echechess.common.enums.Pieces;
@@ -64,7 +39,19 @@ import ca.watier.echechess.exceptions.GameNotFoundException;
 import ca.watier.echechess.exceptions.InvalidGameParameterException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
+import ca.watier.echechess.types.EndType;
 import ca.watier.echechess.utils.MessageQueueUtils;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
+import static ca.watier.echechess.common.enums.ChessEventMessage.*;
+import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
+import static ca.watier.echechess.common.utils.Constants.*;
 
 
 /**

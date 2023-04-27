@@ -16,10 +16,6 @@
 
 package ca.watier.echechess.services;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.pojos.MoveHistory;
@@ -30,8 +26,11 @@ import ca.watier.echechess.engine.exceptions.FenParserException;
 import ca.watier.echechess.exceptions.GameException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
-import ca.watier.echechess.models.UserDetailsImpl;
 import ca.watier.echechess.types.EndType;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public interface GameService {
     UUID createNewGame(String specialGamePieces, Side side, boolean againstComputer, boolean observers, Player player) throws FenParserException, GameException;
