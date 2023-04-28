@@ -16,8 +16,44 @@
 
 package ca.watier.echechess.services;
 
+import static ca.watier.echechess.common.enums.ChessEventMessage.GAME_WON_EVENT_MOVE;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PAWN_PROMOTION;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_JOINED;
+import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
+import static ca.watier.echechess.common.enums.ChessEventMessage.REFRESH_BOARD;
+import static ca.watier.echechess.common.enums.ChessEventMessage.SCORE_UPDATE;
+import static ca.watier.echechess.common.enums.ChessEventMessage.TRY_JOIN_GAME;
+import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
+import static ca.watier.echechess.common.utils.Constants.GAME_ENDED;
+import static ca.watier.echechess.common.utils.Constants.GAME_PAUSED_PAWN_PROMOTION;
+import static ca.watier.echechess.common.utils.Constants.JOINING_GAME;
+import static ca.watier.echechess.common.utils.Constants.NEW_PLAYER_JOINED_SIDE;
+import static ca.watier.echechess.common.utils.Constants.NOT_AUTHORIZED_TO_JOIN;
+import static ca.watier.echechess.common.utils.Constants.PLAYER_KING_STALEMATE;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.UUID;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
+
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.KingStatus;
+import ca.watier.echechess.common.enums.MoveType;
 import ca.watier.echechess.common.enums.Pieces;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.pojos.MoveHistory;
@@ -41,17 +77,6 @@ import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
 import ca.watier.echechess.types.EndType;
 import ca.watier.echechess.utils.MessageQueueUtils;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-
-import static ca.watier.echechess.common.enums.ChessEventMessage.PLAYER_TURN;
-import static ca.watier.echechess.common.enums.ChessEventMessage.*;
-import static ca.watier.echechess.common.enums.Side.getOtherPlayerSide;
-import static ca.watier.echechess.common.utils.Constants.*;
 
 
 /**
@@ -268,6 +293,14 @@ public class GameServiceImpl implements GameService {
         if (!gameFromUuid.hasPlayer(player)) {
             return Collections.emptyList();
         }
+        
+        return getIterableBoard(gameFromUuid);
+    }
+
+    private List<PieceLocationModel> getIterableBoard(GenericGameHandler gameFromUuid) throws GameException {
+        if (gameFromUuid == null) {
+            throw new InvalidGameParameterException();
+        }
 
         // Keys are sorted by small values fist (-3 -> 4)
         Map<Integer, Set<Map.Entry<CasePosition, Pieces>>> sortedByCol = new TreeMap<>(Comparator.naturalOrder());
@@ -385,9 +418,8 @@ public class GameServiceImpl implements GameService {
 
         Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
 
-        if(from==null) {
+        if (from == null) {
             //Case where from is not specified, all availables moves returned
-
             Map<CasePosition, Pieces> playerPieces = gameFromUuid.getPiecesLocation(playerSide);
 
             for (CasePosition tile : playerPieces.keySet()) {
@@ -396,7 +428,6 @@ public class GameServiceImpl implements GameService {
 
         } else {
             //Case where from is specified: only that position is analysed
-
             if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
                 return null;  //TODO: Add a checked exception
             }
@@ -581,47 +612,71 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException {
+    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, Side side, String specialGamePieces) throws FenParserException, GameException {
 
-        if (ObjectUtils.anyNull(player, specialGamePieces, uuid)) {
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
+        
+        if (ObjectUtils.anyNull(specialGamePieces, side)) {
             throw new InvalidGameParameterException();
         }
 
-        GenericGameHandler currentGame = getGameFromUuid(uuid);
-        Side side = currentGame.getPlayerSide(player);
+        GenericGameHandler genericGameHandler = FenGameParser.parse(specialGamePieces);
 
-        GenericGameHandler genericGameHandler;
-        genericGameHandler = FenGameParser.parse(specialGamePieces);
-
-        UUID uuiGiven = UUID.randomUUID();
-        String uuidAsString = uuiGiven.toString();
-        genericGameHandler.setUuid(uuidAsString);
-        genericGameHandler.setPlayerToSide(player, currentGame.getPlayerSide(player));
-
-        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
-        Side playerSide = gameEvaluator.isPlayerTurn(side, genericGameHandler.getCloneOfCurrentDataState()) ?
-                side :
-                getOtherPlayerSide(side);
-
-        if(from==null){
+        if (from == null) {
             //Non specified from returns all available positions to move
-
-            Map<CasePosition, Pieces> playerPieces = genericGameHandler.getPiecesLocation(playerSide);
+            Map<CasePosition, Pieces> playerPieces = genericGameHandler.getPiecesLocation(side);
 
             for (CasePosition tile : playerPieces.keySet()) {
-                availableMoves.put(tile, genericGameHandler.getAllAvailableMoves(tile, playerSide));
+                availableMoves.put(tile, genericGameHandler.getAllAvailableMoves(tile, side));
             }
 
         } else {
             //Case with specified from
-
-            availableMoves.put(from, genericGameHandler.getAllAvailableMoves(from, playerSide));
+            availableMoves.put(from, genericGameHandler.getAllAvailableMoves(from, side));
         }
-
-        deleteGame(uuiGiven.toString());
 
         return availableMoves;
     }
+    
+	@Override
+	public List<PieceLocationModel> getBoardAfterMove(String specialGamePieces, CasePosition from, CasePosition to, PawnPromotionPiecesModel promoteTo) throws FenParserException, GameException {
+		if (ObjectUtils.anyNull(specialGamePieces, from, to)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		GenericGameHandler genericGameHandler = FenGameParser.parse(specialGamePieces);
+		
+		Pieces fromPiece = genericGameHandler.getPiece(from);
+		if (fromPiece == null) {
+			throw new InvalidGameParameterException();
+		}
+		Side playerSide = fromPiece.getSide();
+		if (playerSide == null) {
+			throw new InvalidGameParameterException();
+		}
+		
+		if (genericGameHandler.isGamePaused() || genericGameHandler.isGameDraw() || genericGameHandler.isGameEnded() || genericGameHandler.isKing(KingStatus.STALEMATE, playerSide)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		MoveType moveType = genericGameHandler.movePiece(from, to, playerSide);
+		if (!MoveType.isMoved(moveType)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		if (MoveType.PAWN_PROMOTION.equals(moveType)) {
+			if (promoteTo == null) {
+				throw new InvalidGameParameterException();
+			}
+            Pieces upgradeTo = PawnPromotionPiecesModel.from(promoteTo, playerSide);
+            boolean isUpgraded = genericGameHandler.upgradePiece(to, upgradeTo, playerSide);
+            if (!isUpgraded) {
+				throw new InvalidGameParameterException();
+            }
+		}
+		
+		return getIterableBoard(genericGameHandler);
+	}
 
     private boolean equalMove(MoveHistory m1, MoveHistory m2) {
         return m1.getPlayerSide().equals(m2.getPlayerSide())

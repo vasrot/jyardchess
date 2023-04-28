@@ -65,5 +65,7 @@ public interface GameService {
 
     EndType isGameEnded(String uuid, Player player) throws GameException;
 
-    Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException;
+    Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, Side side, String specialGamePieces) throws FenParserException, GameException;
+
+	List<PieceLocationModel> getBoardAfterMove(String specialGamePieces, CasePosition from, CasePosition to, PawnPromotionPiecesModel promoteTo) throws FenParserException, GameException;
 }
