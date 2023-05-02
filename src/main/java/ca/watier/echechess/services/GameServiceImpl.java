@@ -46,9 +46,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import ca.watier.echechess.models.AvailableMove;
-import ca.watier.echechess.models.UserDetailsImpl;
-import ca.watier.echechess.types.EndType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -56,6 +53,7 @@ import org.slf4j.LoggerFactory;
 
 import ca.watier.echechess.common.enums.CasePosition;
 import ca.watier.echechess.common.enums.KingStatus;
+import ca.watier.echechess.common.enums.MoveType;
 import ca.watier.echechess.common.enums.Pieces;
 import ca.watier.echechess.common.enums.Side;
 import ca.watier.echechess.common.pojos.MoveHistory;
@@ -77,6 +75,7 @@ import ca.watier.echechess.exceptions.GameNotFoundException;
 import ca.watier.echechess.exceptions.InvalidGameParameterException;
 import ca.watier.echechess.models.PawnPromotionPiecesModel;
 import ca.watier.echechess.models.PieceLocationModel;
+import ca.watier.echechess.types.EndType;
 import ca.watier.echechess.utils.MessageQueueUtils;
 
 
@@ -294,6 +293,14 @@ public class GameServiceImpl implements GameService {
         if (!gameFromUuid.hasPlayer(player)) {
             return Collections.emptyList();
         }
+        
+        return getIterableBoard(gameFromUuid);
+    }
+
+    private List<PieceLocationModel> getIterableBoard(GenericGameHandler gameFromUuid) throws GameException {
+        if (gameFromUuid == null) {
+            throw new InvalidGameParameterException();
+        }
 
         // Keys are sorted by small values fist (-3 -> 4)
         Map<Integer, Set<Map.Entry<CasePosition, Pieces>>> sortedByCol = new TreeMap<>(Comparator.naturalOrder());
@@ -401,19 +408,34 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<CasePosition> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
-        if (ObjectUtils.anyNull(from, player) || StringUtils.isBlank(uuid)) {
+    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesBody(CasePosition from, String uuid, Player player) throws  GameException{
+        if (ObjectUtils.anyNull(player) || StringUtils.isBlank(uuid)) {
             throw new InvalidGameParameterException();
         }
 
         GenericGameHandler gameFromUuid = getGameFromUuid(uuid);
         Side playerSide = gameFromUuid.getPlayerSide(player);
 
-        if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
-            return null;  //TODO: Add a checked exception
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
+
+        if (from == null) {
+            //Case where from is not specified, all availables moves returned
+            Map<CasePosition, Pieces> playerPieces = gameFromUuid.getPiecesLocation(playerSide);
+
+            for (CasePosition tile : playerPieces.keySet()) {
+                availableMoves.put(tile, gameFromUuid.getAllAvailableMoves(tile, playerSide));
+            }
+
+        } else {
+            //Case where from is specified: only that position is analysed
+            if (!gameFromUuid.hasPlayer(player) || !isPlayerSameColorThanPiece(from, gameFromUuid, playerSide)) {
+                return null;  //TODO: Add a checked exception
+            }
+
+            availableMoves.put(from, gameFromUuid.getAllAvailableMoves(from, playerSide));
         }
 
-        return gameFromUuid.getAllAvailableMoves(from, playerSide);
+        return availableMoves;
     }
 
     @Override
@@ -590,32 +612,71 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<CasePosition> getAllAvailableMovesGivenFen(CasePosition from, String uuid, String specialGamePieces, Player player) throws FenParserException, GameException {
+    public Map<CasePosition,List<CasePosition>> getAllAvailableMovesGivenFen(CasePosition from, Side side, String specialGamePieces) throws FenParserException, GameException {
 
-        if (ObjectUtils.anyNull(player, specialGamePieces, uuid, from)) {
+        Map<CasePosition,List<CasePosition>> availableMoves = new HashMap<>();
+        
+        if (ObjectUtils.anyNull(specialGamePieces, side)) {
             throw new InvalidGameParameterException();
         }
 
-        GenericGameHandler currentGame = getGameFromUuid(uuid);
-        Side side = currentGame.getPlayerSide(player);
+        GenericGameHandler genericGameHandler = FenGameParser.parse(specialGamePieces);
 
-        GenericGameHandler genericGameHandler;
-        genericGameHandler = FenGameParser.parse(specialGamePieces);
+        if (from == null) {
+            //Non specified from returns all available positions to move
+            Map<CasePosition, Pieces> playerPieces = genericGameHandler.getPiecesLocation(side);
 
-        UUID uuiGiven = UUID.randomUUID();
-        String uuidAsString = uuiGiven.toString();
-        genericGameHandler.setUuid(uuidAsString);
-        genericGameHandler.setPlayerToSide(player, currentGame.getPlayerSide(player));
+            for (CasePosition tile : playerPieces.keySet()) {
+                availableMoves.put(tile, genericGameHandler.getAllAvailableMoves(tile, side));
+            }
 
-        List<CasePosition> availableMoves = genericGameHandler.getAllAvailableMoves(from,
-                gameEvaluator.isPlayerTurn(side, genericGameHandler.getCloneOfCurrentDataState())?
-                        side:
-                        getOtherPlayerSide(side));
-
-        deleteGame(uuiGiven.toString());
+        } else {
+            //Case with specified from
+            availableMoves.put(from, genericGameHandler.getAllAvailableMoves(from, side));
+        }
 
         return availableMoves;
     }
+    
+	@Override
+	public List<PieceLocationModel> getBoardAfterMove(String specialGamePieces, CasePosition from, CasePosition to, PawnPromotionPiecesModel promoteTo) throws FenParserException, GameException {
+		if (ObjectUtils.anyNull(specialGamePieces, from, to)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		GenericGameHandler genericGameHandler = FenGameParser.parse(specialGamePieces);
+		
+		Pieces fromPiece = genericGameHandler.getPiece(from);
+		if (fromPiece == null) {
+			throw new InvalidGameParameterException();
+		}
+		Side playerSide = fromPiece.getSide();
+		if (playerSide == null) {
+			throw new InvalidGameParameterException();
+		}
+		
+		if (genericGameHandler.isGamePaused() || genericGameHandler.isGameDraw() || genericGameHandler.isGameEnded() || genericGameHandler.isKing(KingStatus.STALEMATE, playerSide)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		MoveType moveType = genericGameHandler.movePiece(from, to, playerSide);
+		if (!MoveType.isMoved(moveType)) {
+			throw new InvalidGameParameterException();
+		}
+		
+		if (MoveType.PAWN_PROMOTION.equals(moveType)) {
+			if (promoteTo == null) {
+				throw new InvalidGameParameterException();
+			}
+            Pieces upgradeTo = PawnPromotionPiecesModel.from(promoteTo, playerSide);
+            boolean isUpgraded = genericGameHandler.upgradePiece(to, upgradeTo, playerSide);
+            if (!isUpgraded) {
+				throw new InvalidGameParameterException();
+            }
+		}
+		
+		return getIterableBoard(genericGameHandler);
+	}
 
     private boolean equalMove(MoveHistory m1, MoveHistory m2) {
         return m1.getPlayerSide().equals(m2.getPlayerSide())
