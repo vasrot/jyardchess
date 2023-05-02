@@ -314,14 +314,31 @@ public class GameController {
             @ApiResponse(code = 200, message = "The result of this query.")
     })
     @ApiOperation("Get a list of position that the piece can moves given a Fen board state")
-    @PreAuthorize("isPlayerInGame(#uuid)")
     @GetMapping(path = "/available-moves-predictive", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<CasePosition,List<CasePosition>>> getMovesGivenFen(@ApiParam(value = FROM_POSITION) CasePosition from,
-                                                               @ApiParam(value = UUID_GAME, required = true) String uuid,
-                                                               @ApiParam(value = PATTERN_CUSTOM_GAME) String specialGamePieces) {
+    																@ApiParam(value = SIDE_PLAYER, required = true) Side side,
+    																@ApiParam(value = PATTERN_CUSTOM_GAME, required = true) String specialGamePieces) {
 
         try {
-            return ResponseEntity.ok(gameService.getAllAvailableMovesGivenFen(from, uuid, specialGamePieces, AuthenticationUtils.getUserDetail()));
+            return ResponseEntity.ok(gameService.getAllAvailableMovesGivenFen(from, side, specialGamePieces));
+        } catch (FenParserException | GameException ignored) {
+            return BAD_REQUEST_RESPONSE_ENTITY;
+        }
+    }
+    
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "There's an issue when fetching the board result given a Fen board state and a move."),
+            @ApiResponse(code = 200, message = "The result of this query.")
+    })
+    @ApiOperation("Get the board result given a Fen board state and a move")
+    @GetMapping(path = "/board-after-move", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PieceLocationModel>> getBoardAfterMove(@ApiParam(value = PATTERN_CUSTOM_GAME, required = true) String specialGamePieces,
+    													@ApiParam(value = FROM_POSITION, required = true) CasePosition from,
+    													@ApiParam(value = TO_POSITION, required = true) CasePosition to,
+    													@ApiParam(value = UPGRADED_PIECE) PawnPromotionPiecesModel piece) {
+
+        try {
+            return ResponseEntity.ok(gameService.getBoardAfterMove(specialGamePieces, from, to, piece));
         } catch (FenParserException | GameException ignored) {
             return BAD_REQUEST_RESPONSE_ENTITY;
         }
